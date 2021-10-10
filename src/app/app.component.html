@@ -1,0 +1,26 @@
+<h1>TodoList Project</h1>
+
+<ng-container>
+  <div class="todoitem" *ngFor="let item of TodoList">
+    {{ item.Description }}
+  </div>
+</ng-container>
+
+<mat-card>
+
+  <form [formGroup]="todoform" (ngSubmit)="SubmitTodoItem(descriptionData)" class="form">
+    <div class="form-group">
+      <mat-form-field class="example-full-width" appearance="fill">
+        <mat-label>Description</mat-label>
+        <textarea [(ngModel)]="descriptionData" formControlName="description" matInput
+          placeholder="Description..."></textarea>
+      </mat-form-field>
+    </div>
+    <div class="form-group">
+      <button [disabled]="!todoform.valid" type="submit">Add Todo</button>
+    </div>
+  </form>
+
+</mat-card>
+
+<mat-label class="status" *ngIf="noData">No Todo Data!</mat-label>

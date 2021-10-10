@@ -1,0 +1,92 @@
+services:
+  - docker:dind
+
+#before_script:
+#- apt update
+#- apt-get install build-essential -y
+#- export CHROME_BIN=/usr/bin/chromium-browser
+#- export CHROMIUM_BIN=/usr/bin/chromium-browser
+#- export FIREFOX_BIN=/usr/bin/firefox
+
+#default:
+#image: markhobson/node-chrome:latest
+
+stages:
+  - dependencies
+  - test
+  - build
+  - deploy
+
+dependencies:
+  image: node:latest
+  stage: dependencies
+  script:
+    - npm install
+    - npm install --save @angular-devkit/build-angular
+  only:
+    - master
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules
+
+test:
+  #image: node:latest
+  image: node:12-alpine
+  #image: markhobson/node-chrome:latest
+  #image: selenium/node-chrome
+  stage: test
+  before_script:
+    - apk add chromium
+    - export CHROME_BIN=/usr/bin/chromium-browser
+  script:
+    - npm install --save @angular-devkit/build-angular
+    #- export CHROME_BIN=/usr/bin/chromium-browser
+    #- export CHROMIUM_BIN=/usr/bin/chromium-browser
+    #- npm link @angular/cli@latest
+    - npm link @angular/cli@12.2.6
+    #- npm link @angular/cli
+    - ng test --browsers=ChromeHeadlessNoSandbox --watch=false
+    #- ng test --browsers=FirefoxHeadless --watch=false
+    #- ng test --browsers=PhantomJS --watch=false
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules
+    policy: pull
+
+build:
+  image: node:latest
+  stage: build
+  script:
+    - npm link @angular/cli@12.2.6
+    - ng build --prod
+  after_script:
+    - cp nginx.conf dist/todo-app
+    - cp Dockerfile dist/todo-app
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 2 hours
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules
+    policy: pull
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:latest
+  before_script:
+    - cd dist/todo-app
+  script:
+    - docker build -t todolist-angular:prod .
+    - docker run -d -p 90:90 todolist-angular:prod
